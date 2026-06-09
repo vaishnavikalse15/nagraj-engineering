@@ -1,14 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
-const PORT = 5002;
+const PORT = process.env.PORT || 5002;
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json({ limit: '50mb' }));
+app.use(express.static(path.join(__dirname, '../../build')));
 
-const MONGODB_URI = 'mongodb://localhost:27017/nagraj-hrms';
+// Use environment variable for MongoDB (Railway) or fallback to local
+const MONGODB_URI = process.env.MONGODB_URL || 'mongodb://localhost:27017/nagraj-hrms';
 
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
@@ -17,7 +20,7 @@ mongoose.connect(MONGODB_URI, {
 .then(() => console.log('✅ Connected to MongoDB (Nagraj Industries)'))
 .catch(err => {
   console.error('❌ MongoDB connection error:', err);
-  console.log('💡 Make sure MongoDB is running: net start MongoDB');
+  console.log('💡 Make sure MongoDB is running or MONGODB_URL is set');
 });
 
 // ========== USER SCHEMA ==========
@@ -190,7 +193,7 @@ app.delete('/api/workers/:id', async (req, res) => {
   }
 });
 
-// ========== APPROVAL ROUTES (keep existing) ==========
+// ========== APPROVAL ROUTES ==========
 app.put('/api/workers/production-approve/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -329,7 +332,7 @@ async function findWorker(id) {
   return await Worker.findOne({ punchCode: id });
 }
 
-// ========== USER MANAGEMENT (with super_admin protection) ==========
+// ========== USER MANAGEMENT ==========
 app.get('/api/users', async (req, res) => {
   try {
     const users = await User.find().select('-password');
@@ -385,7 +388,6 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-// ✅ Prevent deletion of super_admin users
 app.delete('/api/users/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -400,7 +402,7 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-// ========== DEFAULT USERS (only created if they don't exist) ==========
+// ========== DEFAULT USERS ==========
 const defaultUsers = [
   { email: 'admin@nagraj.com', password: 'admin123', name: 'Nagraj Admin', role: 'super_admin', phone: '9999999900', source: 'system' },
   { email: 'a', password: 'a123', name: 'Admin User', role: 'super_admin', phone: '', source: 'system' },
@@ -422,9 +424,16 @@ const initDefaultUsers = async () => {
   }
 };
 
+// Serve React app for any non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../../build', 'index.html'));
+  }
+});
+
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`\n🏭 NAGRAJ INDUSTRIES HRMS Server running on http://localhost:${PORT}`);
+  console.log(`\n🏭 NAGRAJ INDUSTRIES HRMS Server running on port ${PORT}`);
   console.log(`✅ Default users ready.`);
 });
 
