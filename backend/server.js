@@ -424,7 +424,7 @@ const initDefaultUsers = async () => {
   }
 };
 
-Serve React app for any non-API routes
+// Serve React app for any non-API routes (commented for Render)
 // app.get('*', (req, res) => {
 //   if (!req.path.startsWith('/api')) {
 //     res.sendFile(path.join(__dirname, '../../build', 'index.html'));
